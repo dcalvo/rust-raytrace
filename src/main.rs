@@ -15,6 +15,12 @@ where
     to_range.0 + (s - from_range.0) * (to_range.1 - to_range.0) / (from_range.1 - from_range.0)
 }
 
+fn lerp(t: f32, start_value: Vec3, end_value: Vec3) -> Vec3 {
+    assert!(t >= 0.0, "t is less than zero");
+    assert!(t <= 1.0, "t is greater than one");
+    (1.0 - t) * start_value + t * end_value
+}
+
 fn vec_to_pixel(vec: Color) -> Rgb<u8> {
     let r = map_range(vec.x, (0.0, 1.0), (0.0, 255.999)) as u8;
     let g = map_range(vec.y, (0.0, 1.0), (0.0, 255.999)) as u8;
@@ -28,7 +34,8 @@ fn ray_color(r: &Ray) -> Color {
     let t = 0.5 * (unit_direction.y + 1.0);
     let white: Color = vec3(1.0, 1.0, 1.0);
     let sky_blue: Color = vec3(0.5, 0.7, 1.0);
-    (1.0 - t) * white + t * sky_blue
+
+    lerp(t, white, sky_blue)
 }
 
 fn main() {
