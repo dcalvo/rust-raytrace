@@ -1,5 +1,7 @@
+mod geometry;
 mod ray;
 
+use crate::geometry::{Hittable, Sphere};
 use crate::ray::Ray;
 use glam::{vec3, Vec3};
 use image::{ImageBuffer, Rgb, RgbImage};
@@ -30,6 +32,16 @@ fn vec_to_pixel(vec: Color) -> Rgb<u8> {
 }
 
 fn ray_color(r: &Ray) -> Color {
+    // Sphere
+    let sphere = Sphere {
+        center: vec3(0.0, 0.0, -1.0),
+        radius: 0.5,
+    };
+    if sphere.hit(r) {
+        return vec3(1.0, 0.0, 0.0);
+    }
+
+    // Sky
     let unit_direction = r.direction.normalize();
     let t = 0.5 * (unit_direction.y + 1.0);
     let white: Color = vec3(1.0, 1.0, 1.0);
