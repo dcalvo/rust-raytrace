@@ -1,8 +1,8 @@
-mod geometry;
 mod ray;
+mod sphere;
 
-use crate::geometry::{Hittable, Sphere};
-use crate::ray::Ray;
+use crate::ray::{HitRecord, Hittable, Ray};
+use crate::sphere::Sphere;
 use glam::{vec3, Vec3};
 use image::{ImageBuffer, Rgb, RgbImage};
 use std::ops::{Add, Div, Mul, Sub};
@@ -31,23 +31,32 @@ fn vec_to_pixel(vec: Color) -> Rgb<u8> {
     Rgb([r, g, b])
 }
 
-fn ray_color(r: &Ray) -> Color {
-    // Sphere
-    let sphere = Sphere {
-        center: vec3(0.0, 0.0, -1.0),
-        radius: 0.5,
-    };
-    if sphere.hit(r) {
-        return vec3(1.0, 0.0, 0.0);
+fn hit_world(r: &Ray, world: &Vec<Box<dyn Hittable>>, t_min: f32, t_max: f32) -> Option<HitRecord> {
+    let mut closest_so_far = t_max;
+    let mut hit_record = None;
+    for geo in world {
+        if let Some(hit) = geo.hit(r, t_min, closest_so_far) {
+            closest_so_far = hit.t;
+            hit_record = Some(hit);
+        }
     }
+    hit_record
+}
 
-    // Sky
-    let unit_direction = r.direction.normalize();
-    let t = 0.5 * (unit_direction.y + 1.0);
-    let white: Color = vec3(1.0, 1.0, 1.0);
-    let sky_blue: Color = vec3(0.5, 0.7, 1.0);
+fn ray_color(r: &Ray, world: &Vec<Box<dyn Hittable>>) -> Color {
+    let hit = hit_world(r, world, 0.0, f32::INFINITY);
+    match hit {
+        Some(hit_record) => 0.5 * (hit_record.normal + vec3(1.0, 1.0, 1.0)),
+        None => {
+            // Skybox
+            let unit_direction = r.direction.normalize();
+            let t = 0.5 * (unit_direction.y + 1.0);
+            let white: Color = vec3(1.0, 1.0, 1.0);
+            let sky_blue: Color = vec3(0.5, 0.7, 1.0);
 
-    lerp(t, white, sky_blue)
+            lerp(t, white, sky_blue)
+        }
+    }
 }
 
 fn main() {
@@ -67,6 +76,18 @@ fn main() {
     let lower_left_corner =
         origin - horizontal / 2.0 - vertical / 2.0 - vec3(0.0, 0.0, focal_length);
 
+    // World
+    let world: Vec<Box<dyn Hittable>> = vec![
+        Box::new(Sphere {
+            center: vec3(0.0, 0.0, -1.0),
+            radius: 0.5,
+        }),
+        Box::new(Sphere {
+            center: vec3(0.0, -100.5, -1.0),
+            radius: 100.0,
+        }),
+    ];
+
     // Render
 
     let mut image_buffer: RgbImage = ImageBuffer::new(image_width, image_height);
@@ -82,7 +103,7 @@ fn main() {
                 origin,
                 direction: lower_left_corner + u * horizontal + v * vertical - origin,
             };
-            let color = ray_color(&r);
+            let color = ray_color(&r, &world);
 
             // ImageBuffer's origin is top-left, or (0, image_height), so subtract y to move it
             let pixel = image_buffer.get_pixel_mut(x, (image_height - y) - 1);
