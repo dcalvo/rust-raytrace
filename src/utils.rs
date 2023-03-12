@@ -1,4 +1,5 @@
-use glam::Vec3;
+use glam::{vec3, Vec3};
+use rand::random;
 use std::ops::{Add, Div, Mul, Sub};
 
 pub fn map_range<T: Copy>(s: T, from_range: (T, T), to_range: (T, T)) -> T
@@ -22,5 +23,35 @@ pub fn clamp<T: PartialOrd>(input: T, min: T, max: T) -> T {
         max
     } else {
         input
+    }
+}
+
+pub fn random_vec3(min: f32, max: f32) -> Vec3 {
+    let p = vec3(random::<f32>(), random::<f32>(), random::<f32>());
+    let min_p = Vec3::splat(min);
+    let max_p = Vec3::splat(max);
+    p.clamp(min_p, max_p)
+}
+
+pub fn random_in_unit_sphere() -> Vec3 {
+    loop {
+        let p = random_vec3(-1.0, 1.0);
+        if p.length_squared() >= 1.0 {
+            continue;
+        }
+        return p;
+    }
+}
+
+pub fn random_unit_vector() -> Vec3 {
+    random_in_unit_sphere().normalize()
+}
+
+pub fn random_in_hemisphere(normal: Vec3) -> Vec3 {
+    let in_unit_sphere = random_in_unit_sphere();
+    if in_unit_sphere.dot(normal) > 0.0 {
+        in_unit_sphere
+    } else {
+        -in_unit_sphere
     }
 }
